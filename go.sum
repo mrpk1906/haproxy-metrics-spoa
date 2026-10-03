@@ -1,0 +1,2 @@
+github.com/dropmorepackets/haproxy-go v0.1.1/go.mod h1:4a2AmmVjvg2zPNdizGZrMN8ZSUpj90U43VlcdbOIBnU=
+github.com/prometheus/client_golang v1.19.0/go.mod h1:ZRM9uEAypZakd+q/x7+gmsvXdURP+DABIEIjnmDdp+k=
