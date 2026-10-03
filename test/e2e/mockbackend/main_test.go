@@ -58,6 +58,46 @@ func TestMockBackendHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("GET /status/abc", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/status/abc", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GET /status/99", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/status/99", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GET /status/600", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/status/600", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected status 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("GET /nonexistent", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected status 404, got %d", rec.Code)
+		}
+	})
+
 	t.Run("GET /delay/50", func(t *testing.T) {
 		start := time.Now()
 		req := httptest.NewRequest(http.MethodGet, "/delay/50", nil)
