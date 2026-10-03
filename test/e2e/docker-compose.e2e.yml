@@ -1,0 +1,62 @@
+services:
+  mock-backend:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: mock-backend
+    networks:
+      - e2e_net
+
+  spoa-tcp:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: daemon
+    command:
+      - "--spoe.listen=tcp://0.0.0.0:9100"
+      - "--metrics.listen=0.0.0.0:9101"
+      - "--max-hosts=10"
+    ports:
+      - "19100:9101"
+    networks:
+      - e2e_net
+
+  spoa-unix:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: daemon
+    command:
+      - "--spoe.listen=unix:///var/run/haproxy/spoa.sock"
+      - "--metrics.listen=0.0.0.0:9101"
+      - "--max-hosts=10"
+    volumes:
+      - spoa_socket:/var/run/haproxy
+    ports:
+      - "19101:9101"
+    networks:
+      - e2e_net
+
+  haproxy:
+    image: haproxy:2.8-alpine
+    user: root
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/spoe-metrics-tcp.cfg:/usr/local/etc/haproxy/spoe-metrics-tcp.cfg:ro
+      - ./haproxy/spoe-metrics-unix.cfg:/usr/local/etc/haproxy/spoe-metrics-unix.cfg:ro
+      - spoa_socket:/var/run/haproxy
+    ports:
+      - "18080:8080"
+      - "18081:8081"
+    networks:
+      - e2e_net
+    depends_on:
+      - mock-backend
+      - spoa-tcp
+      - spoa-unix
+
+volumes:
+  spoa_socket:
+
+networks:
+  e2e_net:
