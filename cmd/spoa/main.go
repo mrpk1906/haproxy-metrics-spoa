@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/haproxy-metrics-spoa/internal/version"
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
-	"github.com/haproxy-metrics-spoa/pkg/server"
-	"github.com/haproxy-metrics-spoa/pkg/spoa"
+	"github.com/mrpk1906/haproxy-metrics-spoa/internal/version"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/server"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

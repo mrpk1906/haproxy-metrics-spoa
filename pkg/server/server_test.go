@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
-	"github.com/haproxy-metrics-spoa/pkg/spoa"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

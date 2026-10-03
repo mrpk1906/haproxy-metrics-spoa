@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/dropmorepackets/haproxy-go/spop"
-	"github.com/haproxy-metrics-spoa/pkg/spoa"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

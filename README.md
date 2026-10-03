@@ -201,13 +201,13 @@ backend spoe-metrics-backend
 
 ### Prerequisites
 
-- Go 1.22 or newer
+- Go 1.27 or newer
 - HAProxy 2.0+ (compiled with SPOE support)
 
 ### Building from Source
 
 ```bash
-git clone https://github.com/haproxy-metrics-spoa.git
+git clone https://github.com/mrpk1906/haproxy-metrics-spoa.git
 cd haproxy-metrics-spoa
 
 # Build binary
@@ -221,9 +221,9 @@ VERSION="1.0.0"
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-go build -ldflags "-X github.com/haproxy-metrics-spoa/internal/version.Version=${VERSION} \
-                   -X github.com/haproxy-metrics-spoa/internal/version.GitCommit=${COMMIT} \
-                   -X github.com/haproxy-metrics-spoa/internal/version.BuildDate=${DATE}" \
+go build -ldflags "-X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.Version=${VERSION} \
+                   -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.GitCommit=${COMMIT} \
+                   -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.BuildDate=${DATE}" \
          -o bin/haproxy-metrics-spoa ./cmd/spoa
 ```
 

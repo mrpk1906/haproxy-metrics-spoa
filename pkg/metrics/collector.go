@@ -3,7 +3,7 @@ package metrics
 import (
 	"strconv"
 
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/dropmorepackets/haproxy-go/pkg/encoding"
 	"github.com/dropmorepackets/haproxy-go/spop"
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
 )
 
 const TargetMessageName = "http-response-metric"

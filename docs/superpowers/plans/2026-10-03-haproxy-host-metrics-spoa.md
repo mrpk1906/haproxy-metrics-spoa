@@ -34,7 +34,7 @@
 - [ ] **Step 1: Create go.mod**
 
 ```go
-module github.com/haproxy-metrics-spoa
+module github.com/mrpk1906/haproxy-metrics-spoa
 
 go 1.22.0
 
@@ -308,7 +308,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 )
@@ -383,7 +383,7 @@ package metrics
 import (
 	"strconv"
 
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -525,8 +525,8 @@ import (
 	"testing"
 
 	"github.com/dropmorepackets/haproxy-go/pkg/encoding"
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -570,7 +570,7 @@ import (
 	"context"
 
 	"github.com/dropmorepackets/haproxy-go/pkg/encoding"
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
 )
 
 const TargetMessageName = "http-response-metric"
@@ -638,9 +638,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
-	"github.com/haproxy-metrics-spoa/pkg/spoa"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -734,7 +734,7 @@ import (
 	"sync"
 
 	"github.com/dropmorepackets/haproxy-go/spop"
-	"github.com/haproxy-metrics-spoa/pkg/spoa"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -961,11 +961,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/haproxy-metrics-spoa/internal/version"
-	"github.com/haproxy-metrics-spoa/pkg/metrics"
-	"github.com/haproxy-metrics-spoa/pkg/normalizer"
-	"github.com/haproxy-metrics-spoa/pkg/server"
-	"github.com/haproxy-metrics-spoa/pkg/spoa"
+	"github.com/mrpk1906/haproxy-metrics-spoa/internal/version"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/metrics"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/server"
+	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
