@@ -28,6 +28,7 @@ func TestCLIHelpFlag(t *testing.T) {
 		"-spoe.socket-mode",
 		"-metrics.listen",
 		"-metrics.path",
+		"-metrics.latency-buckets",
 		"-cardinality.max-hosts",
 		"-cardinality.group-ips",
 		"-version",
@@ -37,6 +38,83 @@ func TestCLIHelpFlag(t *testing.T) {
 		if !strings.Contains(outputStr, flagName) {
 			t.Errorf("expected flag %s in help output, got: %s", flagName, outputStr)
 		}
+	}
+}
+
+func TestParseLatencyBuckets(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []float64
+		wantErr bool
+	}{
+		{
+			name:    "empty string defaults to nil",
+			input:   "",
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "whitespace only defaults to nil",
+			input:   "   ",
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "valid sorted buckets",
+			input:   "0.01, 0.1, 1.0, 30.0, 180.0",
+			want:    []float64{0.01, 0.1, 1.0, 30.0, 180.0},
+			wantErr: false,
+		},
+		{
+			name:    "invalid float",
+			input:   "0.1, invalid, 1.0",
+			wantErr: true,
+		},
+		{
+			name:    "zero value bucket",
+			input:   "0, 1.0",
+			wantErr: true,
+		},
+		{
+			name:    "negative value bucket",
+			input:   "-0.5, 1.0",
+			wantErr: true,
+		},
+		{
+			name:    "non-increasing buckets",
+			input:   "1.0, 0.5",
+			wantErr: true,
+		},
+		{
+			name:    "duplicate consecutive buckets",
+			input:   "1.0, 1.0",
+			wantErr: true,
+		},
+		{
+			name:    "empty item in list",
+			input:   "0.1, , 1.0",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseLatencyBuckets(tc.input)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("parseLatencyBuckets(%q) err = %v, wantErr = %v", tc.input, err, tc.wantErr)
+			}
+			if !tc.wantErr {
+				if len(got) != len(tc.want) {
+					t.Fatalf("parseLatencyBuckets(%q) = %v, want %v", tc.input, got, tc.want)
+				}
+				for i := range got {
+					if got[i] != tc.want[i] {
+						t.Errorf("bucket[%d] = %v, want %v", i, got[i], tc.want[i])
+					}
+				}
+			}
+		})
 	}
 }
 

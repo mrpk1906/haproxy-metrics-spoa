@@ -13,7 +13,7 @@ import (
 func TestHandlerIgnoresUnrecognizedMessage(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	col := metrics.NewCollector(guard, reg)
+	col := metrics.NewCollector(guard, reg, nil)
 	h := NewHandler(col)
 
 	// An empty or different message name should simply be skipped without panic
@@ -53,7 +53,7 @@ func TestHandlerIgnoresUnrecognizedMessage(t *testing.T) {
 func TestHandlerProcessesValidMessage(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	col := metrics.NewCollector(guard, reg)
+	col := metrics.NewCollector(guard, reg, nil)
 	h := NewHandler(col)
 
 	// Build a valid SPOP message: "http-response-metric" with 6 KV entries
@@ -131,7 +131,7 @@ func TestHandlerProcessesValidMessage(t *testing.T) {
 func TestHandlerMalformedMessage(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	col := metrics.NewCollector(guard, reg)
+	col := metrics.NewCollector(guard, reg, nil)
 	h := NewHandler(col)
 
 	// Message with correct name but invalid KV data that fails unmarshal
@@ -181,7 +181,7 @@ func TestHandlerMalformedMessage(t *testing.T) {
 func TestHandlerNilMessage(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	col := metrics.NewCollector(guard, reg)
+	col := metrics.NewCollector(guard, reg, nil)
 	h := NewHandler(col)
 
 	// Nil message should be ignored without panic
@@ -213,7 +213,7 @@ func TestHandlerNilMessage(t *testing.T) {
 func TestHandlerNilKV(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	col := metrics.NewCollector(guard, reg)
+	col := metrics.NewCollector(guard, reg, nil)
 	h := NewHandler(col)
 
 	nameBytes := []byte(TargetMessageName)

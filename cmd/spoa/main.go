@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,15 +27,43 @@ func getEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
+func parseLatencyBuckets(s string) ([]float64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	parts := strings.Split(s, ",")
+	buckets := make([]float64, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			return nil, fmt.Errorf("empty bucket value in %q", s)
+		}
+		val, err := strconv.ParseFloat(part, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid float %q: %w", part, err)
+		}
+		if val <= 0 {
+			return nil, fmt.Errorf("bucket value %g must be positive", val)
+		}
+		if len(buckets) > 0 && val <= buckets[len(buckets)-1] {
+			return nil, fmt.Errorf("buckets must be strictly increasing, got %g after %g", val, buckets[len(buckets)-1])
+		}
+		buckets = append(buckets, val)
+	}
+	return buckets, nil
+}
+
 func main() {
 	var (
-		spoeListen    = flag.String("spoe.listen", getEnv("SPOA_LISTEN", "unix:///var/run/haproxy/spoa.sock"), "SPOE listen URL (unix:///path or tcp://host:port)")
-		socketMode    = flag.Uint("spoe.socket-mode", 0660, "UNIX socket file permission mode")
-		metricsListen = flag.String("metrics.listen", getEnv("METRICS_LISTEN", ":9101"), "Address to serve Prometheus metrics")
-		metricsPath   = flag.String("metrics.path", getEnv("METRICS_PATH", "/metrics"), "HTTP path for metrics")
-		maxHosts      = flag.Int("cardinality.max-hosts", 5000, "Maximum distinct hosts to track before grouping into _overflow_")
-		groupIPs      = flag.Bool("cardinality.group-ips", true, "Group raw IPv4/IPv6 hosts into _ip_")
-		showVersion   = flag.Bool("version", false, "Print version information and exit")
+		spoeListen        = flag.String("spoe.listen", getEnv("SPOA_LISTEN", "unix:///var/run/haproxy/spoa.sock"), "SPOE listen URL (unix:///path or tcp://host:port)")
+		socketMode        = flag.Uint("spoe.socket-mode", 0660, "UNIX socket file permission mode")
+		metricsListen     = flag.String("metrics.listen", getEnv("METRICS_LISTEN", ":9101"), "Address to serve Prometheus metrics")
+		metricsPath       = flag.String("metrics.path", getEnv("METRICS_PATH", "/metrics"), "HTTP path for metrics")
+		latencyBucketsStr = flag.String("metrics.latency-buckets", getEnv("METRICS_LATENCY_BUCKETS", ""), "Comma-separated latency histogram buckets in seconds (empty for defaults)")
+		maxHosts          = flag.Int("cardinality.max-hosts", 5000, "Maximum distinct hosts to track before grouping into _overflow_")
+		groupIPs          = flag.Bool("cardinality.group-ips", true, "Group raw IPv4/IPv6 hosts into _ip_")
+		showVersion       = flag.Bool("version", false, "Print version information and exit")
 	)
 	flag.Parse()
 
@@ -42,9 +72,14 @@ func main() {
 		os.Exit(0)
 	}
 
+	buckets, err := parseLatencyBuckets(*latencyBucketsStr)
+	if err != nil {
+		log.Fatalf("Invalid --metrics.latency-buckets: %v", err)
+	}
+
 	log.Printf("Starting %s", version.Info())
-	log.Printf("Config: SPOE listen=%s, metrics=%s%s, max-hosts=%d, group-ips=%v",
-		*spoeListen, *metricsListen, *metricsPath, *maxHosts, *groupIPs)
+	log.Printf("Config: SPOE listen=%s, metrics=%s%s, max-hosts=%d, group-ips=%v, latency-buckets=%v",
+		*spoeListen, *metricsListen, *metricsPath, *maxHosts, *groupIPs, buckets)
 
 	guard := normalizer.NewGuard(normalizer.Config{
 		MaxTrackedHosts: *maxHosts,
@@ -52,7 +87,7 @@ func main() {
 	})
 
 	reg := prometheus.DefaultRegisterer
-	collector := metrics.NewCollector(guard, reg)
+	collector := metrics.NewCollector(guard, reg, buckets)
 	handler := spoa.NewHandler(collector)
 
 	cfg := server.Config{

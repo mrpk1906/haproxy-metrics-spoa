@@ -19,7 +19,7 @@ import (
 func newTestDependencies() (*spoa.Handler, *prometheus.Registry) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	col := metrics.NewCollector(guard, reg)
+	col := metrics.NewCollector(guard, reg, nil)
 	h := spoa.NewHandler(col)
 	return h, reg
 }

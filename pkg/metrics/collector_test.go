@@ -11,7 +11,7 @@ import (
 func TestCollectorRecordEvent(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	c := NewCollector(guard, reg)
+	c := NewCollector(guard, reg, nil)
 
 	c.RecordEvent(HTTPMetricEvent{
 		Host:     "api.example.com:443",
@@ -150,7 +150,7 @@ func TestCollectorRecordEvent(t *testing.T) {
 func TestCollectorDefaultMethodAndNegativeValues(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	c := NewCollector(guard, reg)
+	c := NewCollector(guard, reg, nil)
 
 	// Empty method should default to UNKNOWN
 	// Latency < 0 should not be observed
@@ -216,7 +216,7 @@ func TestCollectorDefaultMethodAndNegativeValues(t *testing.T) {
 func TestCollectorConcurrentAccess(t *testing.T) {
 	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 100, GroupIPs: true})
 	reg := prometheus.NewRegistry()
-	c := NewCollector(guard, reg)
+	c := NewCollector(guard, reg, nil)
 
 	var wg sync.WaitGroup
 	workers := 10
@@ -305,6 +305,96 @@ func TestNormalizeMethodAndStatusCode(t *testing.T) {
 	for _, tc := range statusTests {
 		if got := formatStatusCode(tc.input); got != tc.expected {
 			t.Errorf("formatStatusCode(%d) = %q, want %q", tc.input, got, tc.expected)
+		}
+	}
+}
+
+func TestCollectorCustomLatencyBuckets(t *testing.T) {
+	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
+	reg := prometheus.NewRegistry()
+	customBuckets := []float64{0.5, 1.0, 180.0}
+	c := NewCollector(guard, reg, customBuckets)
+
+	c.RecordEvent(HTTPMetricEvent{
+		Host:     "slow.example.com",
+		Method:   "GET",
+		Status:   200,
+		Latency:  1500, // 1.5s
+		ReqBytes: 100,
+		ResBytes: 500,
+	})
+
+	mfs, err := reg.Gather()
+	if err != nil {
+		t.Fatalf("gather failed: %v", err)
+	}
+
+	foundDuration := false
+	for _, mf := range mfs {
+		if mf.GetName() == "haproxy_host_http_request_duration_seconds" {
+			foundDuration = true
+			if len(mf.Metric) != 1 {
+				t.Fatalf("expected 1 metric, got %d", len(mf.Metric))
+			}
+			h := mf.Metric[0].GetHistogram()
+			buckets := h.GetBucket()
+			if len(buckets) != len(customBuckets) {
+				t.Fatalf("expected %d buckets, got %d", len(customBuckets), len(buckets))
+			}
+			for i, b := range buckets {
+				if b.GetUpperBound() != customBuckets[i] {
+					t.Errorf("bucket[%d] upper bound = %f, want %f", i, b.GetUpperBound(), customBuckets[i])
+				}
+			}
+			// 1.5s latency should fall into the 180.0 bucket (and count 1 for <=180.0, count 0 for <=0.5 and <=1.0)
+			if buckets[0].GetCumulativeCount() != 0 {
+				t.Errorf("bucket 0.5 count = %d, want 0", buckets[0].GetCumulativeCount())
+			}
+			if buckets[1].GetCumulativeCount() != 0 {
+				t.Errorf("bucket 1.0 count = %d, want 0", buckets[1].GetCumulativeCount())
+			}
+			if buckets[2].GetCumulativeCount() != 1 {
+				t.Errorf("bucket 180.0 count = %d, want 1", buckets[2].GetCumulativeCount())
+			}
+		}
+	}
+
+	if !foundDuration {
+		t.Fatal("duration histogram not found")
+	}
+}
+
+func TestCollectorDefaultLatencyBuckets(t *testing.T) {
+	guard := normalizer.NewGuard(normalizer.Config{MaxTrackedHosts: 10, GroupIPs: true})
+	reg := prometheus.NewRegistry()
+	c := NewCollector(guard, reg, nil)
+
+	c.RecordEvent(HTTPMetricEvent{
+		Host:     "default.example.com",
+		Method:   "GET",
+		Status:   200,
+		Latency:  100,
+		ReqBytes: 100,
+		ResBytes: 500,
+	})
+
+	mfs, err := reg.Gather()
+	if err != nil {
+		t.Fatalf("gather failed: %v", err)
+	}
+
+	for _, mf := range mfs {
+		if mf.GetName() == "haproxy_host_http_request_duration_seconds" {
+			h := mf.Metric[0].GetHistogram()
+			buckets := h.GetBucket()
+			if len(buckets) != len(DefaultLatencyBuckets) {
+				t.Fatalf("expected %d default buckets, got %d", len(DefaultLatencyBuckets), len(buckets))
+			}
+			for i, b := range buckets {
+				if b.GetUpperBound() != DefaultLatencyBuckets[i] {
+					t.Errorf("bucket[%d] upper bound = %f, want %f", i, b.GetUpperBound(), DefaultLatencyBuckets[i])
+				}
+			}
 		}
 	}
 }

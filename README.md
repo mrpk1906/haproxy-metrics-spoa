@@ -101,7 +101,7 @@ The following metrics are exposed at `http://<metrics.listen>/metrics`:
 | Metric Name | Type | Labels | Description |
 |---|---|---|---|
 | `haproxy_host_http_requests_total` | Counter | `host`, `code`, `method` | Total HTTP requests partitioned by virtual host, HTTP response status code, and HTTP method. |
-| `haproxy_host_http_request_duration_seconds` | Histogram | `host` | Latency distribution of HTTP requests per virtual host. Buckets: `[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]`. |
+| `haproxy_host_http_request_duration_seconds` | Histogram | `host` | Latency distribution of HTTP requests per virtual host. Default buckets: `[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 180.0]` (configurable). |
 | `haproxy_host_http_request_bytes_total` | Counter | `host` | Total incoming HTTP request payload bytes received per virtual host. |
 | `haproxy_host_http_response_bytes_total` | Counter | `host` | Total outgoing HTTP response payload bytes transmitted per virtual host. |
 | `haproxy_spoa_messages_received_total` | Counter | `status` | Total SPOP messages processed by the agent. Status values: `ok`, `malformed`, `ignored`. |
@@ -121,6 +121,7 @@ In addition, standard Go runtime and process metrics (`go_*`, `process_*`) are r
 | `--spoe.socket-mode` | `SPOA_SOCKET_MODE` | `0660` (`432` dec) | File permissions for UNIX domain socket. |
 | `--metrics.listen` | `METRICS_LISTEN` | `:9101` | TCP address to serve Prometheus HTTP metrics. |
 | `--metrics.path` | `METRICS_PATH` | `/metrics` | HTTP path where Prometheus metrics are exposed. |
+| `--metrics.latency-buckets` | `METRICS_LATENCY_BUCKETS` | _(default buckets)_ | Comma-separated latency histogram buckets in seconds (e.g. `0.01,0.1,1.0,30.0,180.0`). |
 | `--cardinality.max-hosts` | `CARDINALITY_MAX_HOSTS` | `5000` | Maximum distinct host labels tracked before routing new hosts to `_overflow_`. |
 | `--cardinality.group-ips` | `CARDINALITY_GROUP_IPS` | `true` | When `true`, raw IPv4 and IPv6 hosts are categorized into `_ip_`. |
 | `--version` | _(none)_ | `false` | Print version and build information, then exit. |
