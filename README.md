@@ -149,12 +149,6 @@ spoe-agent metrics-agent
 spoe-message http-response-metric
     args host=var(txn.host) method=method status=status lat=lat res_bytes=res.payload_lv req_bytes=req.payload_lv
     event on-http-response
-
-backend spoe-metrics-backend
-    mode tcp
-    server spoa1 /var/run/haproxy/spoa.sock check
-    # For TCP transport:
-    # server spoa1 127.0.0.1:9100 check
 ```
 
 Key settings:
@@ -164,7 +158,7 @@ Key settings:
 
 ### 2. Main HAProxy Configuration (`examples/haproxy/haproxy.cfg`)
 
-Include the variable capture and SPOE filter in your frontend:
+Include the variable capture, SPOE filter in your frontend, and the SPOE backend:
 
 ```haproxy
 global
@@ -193,6 +187,12 @@ frontend fe_http
 backend be_app
     mode http
     server s1 127.0.0.1:8080 check
+
+backend spoe-metrics-backend
+    mode tcp
+    server spoa1 /var/run/haproxy/spoa.sock check
+    # For TCP transport:
+    # server spoa1 127.0.0.1:9100 check
 ```
 
 ---
