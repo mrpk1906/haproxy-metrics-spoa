@@ -261,3 +261,50 @@ func TestCollectorConcurrentAccess(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizeMethodAndStatusCode(t *testing.T) {
+	methodTests := []struct {
+		input    string
+		expected string
+	}{
+		{"GET", "GET"},
+		{"get", "GET"},
+		{"post", "POST"},
+		{"DELETE", "DELETE"},
+		{"head", "HEAD"},
+		{"Options", "OPTIONS"},
+		{"patch", "PATCH"},
+		{"connect", "CONNECT"},
+		{"trace", "TRACE"},
+		{"", "UNKNOWN"},
+		{"   ", "UNKNOWN"},
+		{"RANDOM_METHOD_123", "OTHER"},
+		{"PROPFIND", "OTHER"},
+	}
+
+	for _, tc := range methodTests {
+		if got := normalizeMethod(tc.input); got != tc.expected {
+			t.Errorf("normalizeMethod(%q) = %q, want %q", tc.input, got, tc.expected)
+		}
+	}
+
+	statusTests := []struct {
+		input    int64
+		expected string
+	}{
+		{200, "200"},
+		{404, "404"},
+		{503, "503"},
+		{0, "0"},
+		{-1, "0"},
+		{99, "OTHER"},
+		{600, "OTHER"},
+		{999, "OTHER"},
+	}
+
+	for _, tc := range statusTests {
+		if got := formatStatusCode(tc.input); got != tc.expected {
+			t.Errorf("formatStatusCode(%d) = %q, want %q", tc.input, got, tc.expected)
+		}
+	}
+}

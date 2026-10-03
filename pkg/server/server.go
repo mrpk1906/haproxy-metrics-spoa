@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/dropmorepackets/haproxy-go/spop"
 	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/spoa"
@@ -143,7 +144,10 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.metricsAddr = httpListener.Addr().String()
 	s.httpServer = &http.Server{
-		Handler: mux,
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 	s.mu.Unlock()
 

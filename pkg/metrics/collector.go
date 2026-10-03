@@ -2,10 +2,56 @@ package metrics
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/mrpk1906/haproxy-metrics-spoa/pkg/normalizer"
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+var statusStrings [600]string
+
+func init() {
+	for i := 100; i < 600; i++ {
+		statusStrings[i] = strconv.Itoa(i)
+	}
+}
+
+func formatStatusCode(code int64) string {
+	if code >= 100 && code < 600 {
+		return statusStrings[code]
+	}
+	if code <= 0 {
+		return "0"
+	}
+	return "OTHER"
+}
+
+func normalizeMethod(m string) string {
+	switch strings.ToUpper(strings.TrimSpace(m)) {
+	case "GET":
+		return "GET"
+	case "POST":
+		return "POST"
+	case "PUT":
+		return "PUT"
+	case "DELETE":
+		return "DELETE"
+	case "HEAD":
+		return "HEAD"
+	case "OPTIONS":
+		return "OPTIONS"
+	case "PATCH":
+		return "PATCH"
+	case "CONNECT":
+		return "CONNECT"
+	case "TRACE":
+		return "TRACE"
+	case "":
+		return "UNKNOWN"
+	default:
+		return "OTHER"
+	}
+}
 
 type HTTPMetricEvent struct {
 	Host     string `spoe:"host"`
@@ -90,11 +136,8 @@ func NewCollector(guard *normalizer.Guard, reg prometheus.Registerer) *Collector
 
 func (c *Collector) RecordEvent(evt HTTPMetricEvent) {
 	normHost := c.guard.Normalize(evt.Host)
-	codeStr := strconv.FormatInt(evt.Status, 10)
-	method := evt.Method
-	if method == "" {
-		method = "UNKNOWN"
-	}
+	codeStr := formatStatusCode(evt.Status)
+	method := normalizeMethod(evt.Method)
 
 	c.requestsTotal.WithLabelValues(normHost, codeStr, method).Inc()
 

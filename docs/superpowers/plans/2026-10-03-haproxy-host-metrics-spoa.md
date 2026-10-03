@@ -6,12 +6,12 @@
 
 **Architecture:** An SPOP protocol agent using `github.com/dropmorepackets/haproxy-go` listens over UNIX domain socket or TCP, receives `on-http-response` NOTIFY messages containing HTTP transaction metadata, normalizes hostnames through a thread-safe cardinality guard, and updates atomic Prometheus counters and latency histograms served on an HTTP endpoint (`:9101/metrics`).
 
-**Tech Stack:** Go 1.22+, `github.com/dropmorepackets/haproxy-go`, `github.com/prometheus/client_golang`, `net/netip`.
+**Tech Stack:** Go 1.27+, `github.com/dropmorepackets/haproxy-go`, `github.com/prometheus/client_golang`, `net/netip`.
 
 **Spec:** [docs/superpowers/specs/2026-10-03-haproxy-host-metrics-spoa-design.md](file:///Users/mrpk1906/Workspace/haproxy-metrics-spoa/docs/superpowers/specs/2026-10-03-haproxy-host-metrics-spoa-design.md)
 
 ## Global Constraints
-- Target Go version: Go 1.22+
+- Target Go version: Go 1.27+
 - Library for SPOP protocol: `github.com/dropmorepackets/haproxy-go`
 - Prometheus client library: `github.com/prometheus/client_golang`
 - Transport options: UNIX domain socket (`unix:///path/to/sock`) and TCP (`tcp://host:port`)
@@ -36,7 +36,7 @@
 ```go
 module github.com/mrpk1906/haproxy-metrics-spoa
 
-go 1.22.0
+go 1.27.0
 
 require (
 	github.com/dropmorepackets/haproxy-go v0.1.1
