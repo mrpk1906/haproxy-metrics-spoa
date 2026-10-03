@@ -26,9 +26,13 @@ const (
 )
 
 func TestMain(m *testing.M) {
+	os.Exit(runMain(m))
+}
+
+func runMain(m *testing.M) int {
 	if _, err := exec.LookPath("docker"); err != nil {
 		fmt.Println("docker not found in PATH, skipping E2E tests")
-		os.Exit(0)
+		return 0
 	}
 
 	fmt.Println("Starting Docker Compose E2E environment...")
@@ -41,7 +45,7 @@ func TestMain(m *testing.M) {
 	if err := upCmd.Run(); err != nil {
 		fmt.Printf("Failed to start docker compose: %v\n", err)
 		_ = exec.Command("docker", "compose", "-f", composeFile, "down", "-v").Run()
-		os.Exit(1)
+		return 1
 	}
 
 	defer func() {
@@ -54,11 +58,10 @@ func TestMain(m *testing.M) {
 		logsCmd := exec.Command("docker", "compose", "-f", composeFile, "logs")
 		logsCmd.Stdout = os.Stdout
 		_ = logsCmd.Run()
-		os.Exit(1)
+		return 1
 	}
 
-	code := m.Run()
-	os.Exit(code)
+	return m.Run()
 }
 
 func waitForReadiness() error {
@@ -108,6 +111,18 @@ func fetchMetrics(endpoint string) (map[string]*dto.MetricFamily, error) {
 
 	parser := expfmt.NewTextParser(model.NameValidationScheme)
 	return parser.TextToMetricFamilies(resp.Body)
+}
+
+func pollMetrics(endpoint string, timeout time.Duration, condition func(metrics map[string]*dto.MetricFamily) bool) (map[string]*dto.MetricFamily, error) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		metrics, err := fetchMetrics(endpoint)
+		if err == nil && condition(metrics) {
+			return metrics, nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return fetchMetrics(endpoint)
 }
 
 func findMetricValue(families map[string]*dto.MetricFamily, name string, labels map[string]string) (float64, bool) {
@@ -181,10 +196,14 @@ func TestE2E_TCP_BasicFlow(t *testing.T) {
 		}
 	}
 
-	// Give SPOA brief time to consume async SPOP events
-	time.Sleep(200 * time.Millisecond)
-
-	metrics, err := fetchMetrics(spoaTCPMetric)
+	metrics, err := pollMetrics(spoaTCPMetric, 2*time.Second, func(m map[string]*dto.MetricFamily) bool {
+		v, ok := findMetricValue(m, "haproxy_host_http_requests_total", map[string]string{
+			"host":   host,
+			"code":   "200",
+			"method": "GET",
+		})
+		return ok && v == 5
+	})
 	if err != nil {
 		t.Fatalf("failed to fetch SPOA TCP metrics: %v", err)
 	}
@@ -223,9 +242,14 @@ func TestE2E_UnixSocket_BasicFlow(t *testing.T) {
 		}
 	}
 
-	time.Sleep(200 * time.Millisecond)
-
-	metrics, err := fetchMetrics(spoaUnixMetric)
+	metrics, err := pollMetrics(spoaUnixMetric, 2*time.Second, func(m map[string]*dto.MetricFamily) bool {
+		v, ok := findMetricValue(m, "haproxy_host_http_requests_total", map[string]string{
+			"host":   host,
+			"code":   "200",
+			"method": "GET",
+		})
+		return ok && v == 5
+	})
 	if err != nil {
 		t.Fatalf("failed to fetch SPOA UNIX metrics: %v", err)
 	}
@@ -259,9 +283,18 @@ func TestE2E_HostNormalization(t *testing.T) {
 		}
 	}
 
-	time.Sleep(200 * time.Millisecond)
-
-	metrics, err := fetchMetrics(spoaTCPMetric)
+	metrics, err := pollMetrics(spoaTCPMetric, 2*time.Second, func(m map[string]*dto.MetricFamily) bool {
+		for _, tc := range testCases {
+			val, ok := findMetricValue(m, "haproxy_host_http_requests_total", map[string]string{
+				"host": tc.expectedMetric,
+				"code": "200",
+			})
+			if !ok || val < 1 {
+				return false
+			}
+		}
+		return true
+	})
 	if err != nil {
 		t.Fatalf("failed to fetch metrics: %v", err)
 	}
@@ -283,9 +316,19 @@ func TestE2E_StatusCodesAndMethods(t *testing.T) {
 	sendRequest(t, haproxyTCP+"/status/404", host, http.MethodGet, nil)
 	sendRequest(t, haproxyTCP+"/status/500", host, http.MethodPost, []byte("request-body"))
 
-	time.Sleep(200 * time.Millisecond)
-
-	metrics, err := fetchMetrics(spoaTCPMetric)
+	metrics, err := pollMetrics(spoaTCPMetric, 2*time.Second, func(m map[string]*dto.MetricFamily) bool {
+		v404, ok1 := findMetricValue(m, "haproxy_host_http_requests_total", map[string]string{
+			"host":   host,
+			"code":   "404",
+			"method": "GET",
+		})
+		v500, ok2 := findMetricValue(m, "haproxy_host_http_requests_total", map[string]string{
+			"host":   host,
+			"code":   "500",
+			"method": "POST",
+		})
+		return ok1 && v404 == 1 && ok2 && v500 == 1
+	})
 	if err != nil {
 		t.Fatalf("failed to fetch metrics: %v", err)
 	}
@@ -313,9 +356,20 @@ func TestE2E_LatencyHistogram(t *testing.T) {
 	host := "delay-test.domain.com"
 	sendRequest(t, haproxyTCP+"/delay/50", host, http.MethodGet, nil)
 
-	time.Sleep(200 * time.Millisecond)
-
-	metrics, err := fetchMetrics(spoaTCPMetric)
+	metrics, err := pollMetrics(spoaTCPMetric, 2*time.Second, func(m map[string]*dto.MetricFamily) bool {
+		family, ok := m["haproxy_host_http_request_duration_seconds"]
+		if !ok {
+			return false
+		}
+		for _, m := range family.GetMetric() {
+			for _, lbl := range m.GetLabel() {
+				if lbl.GetName() == "host" && lbl.GetValue() == host {
+					return m.GetHistogram() != nil && m.GetHistogram().GetSampleCount() >= 1
+				}
+			}
+		}
+		return false
+	})
 	if err != nil {
 		t.Fatalf("failed to fetch metrics: %v", err)
 	}
@@ -353,9 +407,13 @@ func TestE2E_CardinalityOverflow(t *testing.T) {
 		sendRequest(t, haproxyTCP+"/", h, http.MethodGet, nil)
 	}
 
-	time.Sleep(300 * time.Millisecond)
-
-	metrics, err := fetchMetrics(spoaTCPMetric)
+	metrics, err := pollMetrics(spoaTCPMetric, 2*time.Second, func(m map[string]*dto.MetricFamily) bool {
+		overflowVal, ok := findMetricValue(m, "haproxy_host_http_requests_total", map[string]string{
+			"host": "_overflow_",
+			"code": "200",
+		})
+		return ok && overflowVal >= 1
+	})
 	if err != nil {
 		t.Fatalf("failed to fetch metrics: %v", err)
 	}
