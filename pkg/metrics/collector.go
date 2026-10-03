@@ -1,0 +1,117 @@
+package metrics
+
+import (
+	"strconv"
+
+	"github.com/haproxy-metrics-spoa/pkg/normalizer"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+type HTTPMetricEvent struct {
+	Host     string `spoe:"host"`
+	Method   string `spoe:"method"`
+	Status   int64  `spoe:"status"`
+	Latency  int64  `spoe:"lat"`
+	ReqBytes int64  `spoe:"req_bytes"`
+	ResBytes int64  `spoe:"res_bytes"`
+}
+
+type Collector struct {
+	guard         *normalizer.Guard
+	requestsTotal *prometheus.CounterVec
+	durationHist  *prometheus.HistogramVec
+	reqBytesTotal *prometheus.CounterVec
+	resBytesTotal *prometheus.CounterVec
+	messagesTotal *prometheus.CounterVec
+	trackedHosts  prometheus.GaugeFunc
+}
+
+func NewCollector(guard *normalizer.Guard, reg prometheus.Registerer) *Collector {
+	c := &Collector{
+		guard: guard,
+		requestsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "haproxy_host_http_requests_total",
+				Help: "Total number of HTTP requests partitioned by host, response code, and method.",
+			},
+			[]string{"host", "code", "method"},
+		),
+		durationHist: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "haproxy_host_http_request_duration_seconds",
+				Help:    "HTTP request latency distribution partitioned by host.",
+				Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0},
+			},
+			[]string{"host"},
+		),
+		reqBytesTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "haproxy_host_http_request_bytes_total",
+				Help: "Total HTTP request payload bytes received partitioned by host.",
+			},
+			[]string{"host"},
+		),
+		resBytesTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "haproxy_host_http_response_bytes_total",
+				Help: "Total HTTP response payload bytes sent partitioned by host.",
+			},
+			[]string{"host"},
+		),
+		messagesTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "haproxy_spoa_messages_received_total",
+				Help: "Total number of SPOP messages processed by daemon status.",
+			},
+			[]string{"status"},
+		),
+		trackedHosts: prometheus.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Name: "haproxy_spoa_tracked_hosts_total",
+				Help: "Current number of unique virtual hosts actively tracked.",
+			},
+			func() float64 {
+				return float64(guard.TrackedCount())
+			},
+		),
+	}
+
+	reg.MustRegister(
+		c.requestsTotal,
+		c.durationHist,
+		c.reqBytesTotal,
+		c.resBytesTotal,
+		c.messagesTotal,
+		c.trackedHosts,
+	)
+
+	return c
+}
+
+func (c *Collector) RecordEvent(evt HTTPMetricEvent) {
+	normHost := c.guard.Normalize(evt.Host)
+	codeStr := strconv.FormatInt(evt.Status, 10)
+	method := evt.Method
+	if method == "" {
+		method = "UNKNOWN"
+	}
+
+	c.requestsTotal.WithLabelValues(normHost, codeStr, method).Inc()
+
+	if evt.Latency >= 0 {
+		// latency from HAProxy is in milliseconds -> convert to seconds
+		durationSec := float64(evt.Latency) / 1000.0
+		c.durationHist.WithLabelValues(normHost).Observe(durationSec)
+	}
+
+	if evt.ReqBytes > 0 {
+		c.reqBytesTotal.WithLabelValues(normHost).Add(float64(evt.ReqBytes))
+	}
+	if evt.ResBytes > 0 {
+		c.resBytesTotal.WithLabelValues(normHost).Add(float64(evt.ResBytes))
+	}
+}
+
+func (c *Collector) RecordMessage(status string) {
+	c.messagesTotal.WithLabelValues(status).Inc()
+}
