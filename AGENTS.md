@@ -5,10 +5,13 @@
 - Architecture: Pure Go, zero CGo dependencies.
 
 ## Core Commands
-- Run all tests: `go test -v ./...`
-- Run tests with race detection: `go test -race -v ./...`
-- Run specific package tests: `go test -v ./pkg/normalizer` (or `./pkg/metrics`, `./pkg/spoa`, `./pkg/server`, `./cmd/spoa`)
-- Build daemon binary: `go build -o bin/haproxy-metrics-spoa ./cmd/spoa`
+- Run all unit tests: `go test -v ./...` (or `make test`)
+- Run tests with race detection: `go test -race -v ./...` (or `make test-race`)
+- Run end-to-end tests with Docker: `make test-e2e` (or `go test -tags=e2e -v -timeout=120s ./test/e2e/...`)
+- Run specific package tests: `go test -v ./pkg/normalizer` (or `./pkg/metrics`, `./pkg/spoa`, `./pkg/server`, `./cmd/spoa`, `./test/e2e/mockbackend`)
+- Build daemon binary: `go build -o bin/haproxy-metrics-spoa ./cmd/spoa` (or `make build`)
+- Build Docker image: `make docker-build` (or `docker build -t haproxy-metrics-spoa:latest .`)
+- Start/stop E2E Docker stack manually: `make docker-e2e-up` / `make docker-e2e-down`
 - Build with version ldflags:
   ```bash
   go build -ldflags "-X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.Version=1.0.0 \
@@ -24,7 +27,8 @@
   ```bash
   ./bin/haproxy-metrics-spoa --spoe.listen="tcp://127.0.0.1:9100" --metrics.listen="127.0.0.1:9101"
   ```
-- Format code: `go fmt ./...`
+- Format code: `go fmt ./...` (or `make fmt`)
+- Vet code: `go vet ./...` (or `make vet`)
 - Tidy dependencies: `go mod tidy`
 
 ## Repository Structure
@@ -34,6 +38,9 @@
 - `pkg/server/`: Dual-listener network server (`Server`), managing the SPOE listener (UNIX socket or TCP via `spop.Agent`), HTTP Prometheus metrics endpoint (`/metrics`), `/healthz` endpoint, and graceful draining.
 - `pkg/spoa/`: SPOE message handler (`Handler`) implementing `spop.Handler`, unmarshaling binary `http-response-metric` NOTIFY frames into `metrics.HTTPMetricEvent`.
 - `internal/version/`: Build and release metadata (`Version`, `GitCommit`, `BuildDate`).
+- `test/e2e/`: Automated Docker End-to-End test suite (`e2e_test.go` with `//go:build e2e`), Docker Compose topology (`docker-compose.e2e.yml`), HAProxy dual-transport configs (`haproxy/`), and mock HTTP backend (`mockbackend/`).
+- `Dockerfile`: Multi-stage Docker build for production daemon and mock backend containers.
+- `Makefile`: Build, test, race, e2e, and docker workflow automation.
 - `examples/haproxy/`: Production configuration examples (`haproxy.cfg`, `spoe-metrics.cfg`) for integrating HAProxy with the SPOA daemon.
 - `docs/superpowers/`: Architecture specifications and implementation design plans.
 

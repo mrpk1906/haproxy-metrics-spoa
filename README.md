@@ -204,9 +204,16 @@ backend spoe-metrics-backend
 
 - Go 1.27 or newer
 - HAProxy 2.0+ (compiled with SPOE support)
+- Docker & Docker Compose (for containerized deployment and End-to-End tests)
 
 ### Building from Source
 
+Using `make`:
+```bash
+make build
+```
+
+Or using `go build` directly:
 ```bash
 git clone https://github.com/mrpk1906/haproxy-metrics-spoa.git
 cd haproxy-metrics-spoa
@@ -226,6 +233,24 @@ go build -ldflags "-X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.
                    -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.GitCommit=${COMMIT} \
                    -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.BuildDate=${DATE}" \
          -o bin/haproxy-metrics-spoa ./cmd/spoa
+```
+
+### Building & Running with Docker
+
+Build the minimal Alpine container image:
+```bash
+make docker-build
+# or: docker build -t haproxy-metrics-spoa:latest .
+```
+
+Run container with TCP listener:
+```bash
+docker run -d --name haproxy-metrics-spoa \
+  -p 9100:9100 \
+  -p 9101:9101 \
+  haproxy-metrics-spoa:latest \
+  --spoe.listen=tcp://0.0.0.0:9100 \
+  --metrics.listen=:9101
 ```
 
 ### Running the Daemon
@@ -285,17 +310,34 @@ scrape_configs:
 
 ## Running Tests
 
-Run the full automated test suite:
+### Unit Tests
 
+Run all unit tests:
 ```bash
-go test -v ./...
+make test
+# or: go test -v ./...
 ```
 
-Run tests with race detection:
+Run unit tests with race detection:
+```bash
+make test-race
+# or: go test -race -v ./...
+```
+
+### End-to-End (E2E) Tests with Docker
+
+The project includes an automated multi-container E2E test suite that runs against live HAProxy and SPOA containers:
 
 ```bash
-go test -race -v ./...
+make test-e2e
+# or: go test -tags=e2e -v -timeout=120s ./test/e2e/...
 ```
+
+The E2E test suite:
+- Automatically starts a Docker Compose environment (`test/e2e/docker-compose.e2e.yml`) orchestrating HAProxy, two SPOA instances (one TCP, one UNIX domain socket), and an upstream mock backend.
+- Tests dual transports: SPOP over TCP (`:18080` $\rightarrow$ `spoa-tcp:9100`) and SPOP over shared UNIX domain socket volume (`:18081` $\rightarrow$ `/var/run/haproxy/spoa.sock`).
+- Validates real HTTP traffic RED metrics, host normalization (port stripping, IP grouping, lowercase, trailing dot trimming), HTTP status error codes (404, 500), and cardinality overflow behavior (`_overflow_`).
+- Automatically cleans up and unlinks all containers and volumes upon completion.
 
 ---
 
