@@ -45,6 +45,9 @@ func (g *Guard) Normalize(rawHost string) string {
 	}
 
 	cleaned = strings.ToLower(strings.TrimSuffix(cleaned, "."))
+	if cleaned == "" {
+		return "_other_"
+	}
 
 	if strings.ContainsAny(cleaned, " \t\r\n/\\") {
 		return "_other_"

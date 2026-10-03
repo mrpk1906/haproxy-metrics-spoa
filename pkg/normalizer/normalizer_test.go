@@ -27,6 +27,8 @@ func TestNormalizeHostnames(t *testing.T) {
 		{"ipv6 raw", "2001:db8::1", "_ip_"},
 		{"empty string", "", "_other_"},
 		{"malformed host with spaces inside", "example .com", "_other_"},
+		{"port only", ":80", "_other_"},
+		{"dot only", ".", "_other_"},
 	}
 
 	for _, tc := range tests {

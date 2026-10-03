@@ -31,7 +31,6 @@ type Server struct {
 	reg          *prometheus.Registry
 	spopAgent    *spop.Agent
 	spoeListener net.Listener
-	httpListener net.Listener
 	httpServer   *http.Server
 	metricsAddr  string
 	isUnixSock   bool
@@ -142,7 +141,6 @@ func (s *Server) Start(ctx context.Context) error {
 		return fmt.Errorf("listen http metrics error: %w", err)
 	}
 
-	s.httpListener = httpListener
 	s.metricsAddr = httpListener.Addr().String()
 	s.httpServer = &http.Server{
 		Handler: mux,

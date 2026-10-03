@@ -79,8 +79,10 @@ func main() {
 		cancel()
 	}()
 
+	var startErr error
 	if err := srv.Start(ctx); err != nil {
 		log.Printf("Server stopped with error: %v", err)
+		startErr = err
 	}
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -88,6 +90,10 @@ func main() {
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Shutdown error: %v", err)
+	}
+
+	if startErr != nil {
+		os.Exit(1)
 	}
 	log.Println("haproxy-metrics-spoa terminated gracefully.")
 }
