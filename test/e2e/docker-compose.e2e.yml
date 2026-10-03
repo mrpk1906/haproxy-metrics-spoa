@@ -15,7 +15,7 @@ services:
     command:
       - "--spoe.listen=tcp://0.0.0.0:9100"
       - "--metrics.listen=0.0.0.0:9101"
-      - "--max-hosts=10"
+      - "--cardinality.max-hosts=10"
     ports:
       - "19100:9101"
     networks:
@@ -29,7 +29,7 @@ services:
     command:
       - "--spoe.listen=unix:///var/run/haproxy/spoa.sock"
       - "--metrics.listen=0.0.0.0:9101"
-      - "--max-hosts=10"
+      - "--cardinality.max-hosts=10"
     volumes:
       - spoa_socket:/var/run/haproxy
     ports:
