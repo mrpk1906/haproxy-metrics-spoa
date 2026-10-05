@@ -139,7 +139,7 @@ Place this file at `/etc/haproxy/spoe-metrics.cfg`:
 
 ```haproxy
 [metrics]
-spoe-agent metrics-agent
+spoe-agent metrics_agent
     messages http-response-metric
     option   async
     timeout  hello      100ms
@@ -148,14 +148,14 @@ spoe-agent metrics-agent
     use-backend spoe-metrics-backend
 
 spoe-message http-response-metric
-    args host=var(txn.host) method=method status=status lat=lat res_bytes=res.payload_lv req_bytes=req.payload_lv
+    args host=var(txn.host) method=method status=status lat=date_us,sub(txn.t_start),div(1000) res_bytes=res.len req_bytes=var(txn.req_bytes)
     event on-http-response
 ```
 
 Key settings:
 - **`option async`**: Allows HAProxy to offload SPOP processing asynchronously without pausing HTTP request/response loops.
 - **`timeout processing 50ms`**: Bounds offload processing time; HAProxy continues serving traffic if the agent does not respond within this window.
-- **`args`**: Transmits Host (`var(txn.host)`), HTTP method, status code, latency in milliseconds, and request/response payload lengths.
+- **`args`**: Transmits Host (`var(txn.host)`), HTTP method, status code, latency in milliseconds (`date_us - txn.t_start`), and request/response payload lengths (`req.len` and `res.len`).
 
 ### 2. Main HAProxy Configuration (`examples/haproxy/haproxy.cfg`)
 
@@ -177,8 +177,10 @@ frontend fe_http
     bind :80
     mode http
 
-    # 1. Capture the Host header into a transaction variable
+    # 1. Capture Host header and request metrics into transaction variables
     http-request set-var(txn.host) req.hdr(Host)
+    http-request set-var(txn.t_start) date_us
+    http-request set-var(txn.req_bytes) req.len
 
     # 2. Attach SPOE metrics filter
     filter spoe engine metrics config /etc/haproxy/spoe-metrics.cfg
