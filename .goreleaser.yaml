@@ -1,0 +1,147 @@
+version: 2
+
+project_name: haproxy-metrics-spoa
+
+builds:
+  - id: haproxy-metrics-spoa
+    main: ./cmd/spoa
+    binary: haproxy-metrics-spoa
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.Version={{ .Version }}
+      - -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.GitCommit={{ .Commit }}
+      - -X github.com/mrpk1906/haproxy-metrics-spoa/internal/version.BuildDate={{ .Date }}
+
+archives:
+  - id: default
+    builds:
+      - haproxy-metrics-spoa
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - README.md
+      - LICENSE
+      - examples/**/*
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+dockers:
+  - id: haproxy-metrics-spoa-amd64
+    image_templates:
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:{{ .Tag }}-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:latest-amd64"
+    use: buildx
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--target=daemon"
+      - "--build-arg=VERSION={{ .Version }}"
+      - "--build-arg=GIT_COMMIT={{ .Commit }}"
+      - "--build-arg=BUILD_DATE={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description=HAProxy Stream Processing Offload Agent (SPOA) for Prometheus HTTP metrics"
+      - "--label=org.opencontainers.image.url=https://github.com/mrpk1906/haproxy-metrics-spoa"
+      - "--label=org.opencontainers.image.source=https://github.com/mrpk1906/haproxy-metrics-spoa"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .Commit }}"
+      - "--label=org.opencontainers.image.licenses=Apache-2.0"
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd
+      - pkg
+      - internal
+      - test
+
+  - id: haproxy-metrics-spoa-arm64
+    image_templates:
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:{{ .Tag }}-arm64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}-arm64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}.{{ .Minor }}-arm64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:latest-arm64"
+    use: buildx
+    goarch: arm64
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--target=daemon"
+      - "--build-arg=VERSION={{ .Version }}"
+      - "--build-arg=GIT_COMMIT={{ .Commit }}"
+      - "--build-arg=BUILD_DATE={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description=HAProxy Stream Processing Offload Agent (SPOA) for Prometheus HTTP metrics"
+      - "--label=org.opencontainers.image.url=https://github.com/mrpk1906/haproxy-metrics-spoa"
+      - "--label=org.opencontainers.image.source=https://github.com/mrpk1906/haproxy-metrics-spoa"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .Commit }}"
+      - "--label=org.opencontainers.image.licenses=Apache-2.0"
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd
+      - pkg
+      - internal
+      - test
+
+docker_manifests:
+  - name_template: "ghcr.io/mrpk1906/haproxy-metrics-spoa:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:{{ .Tag }}-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:{{ .Tag }}-arm64"
+  - name_template: "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}"
+    image_templates:
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}-arm64"
+  - name_template: "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}.{{ .Minor }}"
+    image_templates:
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}.{{ .Minor }}-arm64"
+  - name_template: "ghcr.io/mrpk1906/haproxy-metrics-spoa:latest"
+    image_templates:
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:latest-amd64"
+      - "ghcr.io/mrpk1906/haproxy-metrics-spoa:latest-arm64"
+
+changelog:
+  sort: asc
+  use: git
+  filters:
+    exclude:
+      - '(?i)merge'
+  groups:
+    - title: "Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Performance"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "Documentation"
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: "Others"
+      order: 999
