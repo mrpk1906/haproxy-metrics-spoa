@@ -1,3 +1,31 @@
+# Binaries and build outputs
 bin/
-.superpowers/
+dist/
+
+# Test, coverage, and profiling outputs
+*.out
+*.test
+*.prof
+coverage.html
+
+# Local runtime sockets
 *.sock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor configurations
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Superpowers temporary logs and plans
+.superpowers/
