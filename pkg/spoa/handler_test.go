@@ -260,4 +260,3 @@ func TestHandlerNilKV(t *testing.T) {
 		t.Errorf("expected 1 malformed message, got %f", malformedCount)
 	}
 }
-
