@@ -1,5 +1,12 @@
 # HAProxy Host Metrics SPOA (`haproxy-metrics-spoa`)
 
+[![CI](https://github.com/mrpk1906/haproxy-metrics-spoa/actions/workflows/ci.yml/badge.svg)](https://github.com/mrpk1906/haproxy-metrics-spoa/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mrpk1906/haproxy-metrics-spoa?color=blue)](https://github.com/mrpk1906/haproxy-metrics-spoa/releases/latest)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/mrpk1906/haproxy-metrics-spoa)](https://github.com/mrpk1906/haproxy-metrics-spoa/blob/main/go.mod)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mrpk1906/haproxy-metrics-spoa)](https://goreportcard.com/report/github.com/mrpk1906/haproxy-metrics-spoa)
+[![GHCR Image](https://img.shields.io/badge/ghcr.io-mrpk1906%2Fhaproxy--metrics--spoa-blue?logo=docker)](https://github.com/mrpk1906/haproxy-metrics-spoa/pkgs/container/haproxy-metrics-spoa)
+
 A high-performance Stream Processing Offload Agent (SPOA) for HAProxy that collects, normalizes, and exports per-virtual-host HTTP RED (Rate, Errors, Duration) metrics and bandwidth statistics to Prometheus.
 
 ---
@@ -13,6 +20,59 @@ HAProxy provides comprehensive built-in metrics via its native Prometheus export
 - Operating asynchronously (`option async`) with strict timeouts so client HTTP traffic is never delayed or blocked.
 - Normalizing hostnames and enforcing configurable cardinality safeguards to protect Prometheus TSDB memory.
 - Exposing per-host RED metrics and bandwidth counters over a standard Prometheus `/metrics` HTTP endpoint.
+
+---
+
+## Quickstart
+
+Get `haproxy-metrics-spoa` running in seconds using Docker or pre-compiled binaries.
+
+### Run with Docker (Recommended)
+
+Run the pre-built multi-architecture container from GitHub Container Registry (GHCR):
+
+```bash
+docker run -d --name haproxy-metrics-spoa \
+  -p 9100:9100 \
+  -p 9101:9101 \
+  ghcr.io/mrpk1906/haproxy-metrics-spoa:latest \
+  --spoe.listen=tcp://0.0.0.0:9100 \
+  --metrics.listen=:9101
+```
+
+For high-performance co-located setups with HAProxy via a shared UNIX domain socket:
+
+```bash
+docker run -d --name haproxy-metrics-spoa \
+  -v /var/run/haproxy:/var/run/haproxy \
+  -p 9101:9101 \
+  ghcr.io/mrpk1906/haproxy-metrics-spoa:latest \
+  --spoe.listen=unix:///var/run/haproxy/spoa.sock \
+  --spoe.socket-mode=0660 \
+  --metrics.listen=:9101
+```
+
+### Run Pre-built Standalone Binary
+
+Download the pre-compiled binary for your OS and architecture from [GitHub Releases](https://github.com/mrpk1906/haproxy-metrics-spoa/releases/latest):
+
+```bash
+# Example for Linux (amd64)
+VERSION="1.0.0"
+curl -sSL "https://github.com/mrpk1906/haproxy-metrics-spoa/releases/download/v${VERSION}/haproxy-metrics-spoa_${VERSION}_linux_amd64.tar.gz" | tar -xz
+
+# Start the agent
+./haproxy-metrics-spoa \
+  --spoe.listen="unix:///var/run/haproxy/spoa.sock" \
+  --metrics.listen=":9101"
+```
+
+Verify that the daemon is healthy:
+
+```bash
+curl http://localhost:9101/healthz
+# Output: OK
+```
 
 ---
 
@@ -108,6 +168,108 @@ The following metrics are exposed at `http://<metrics.listen>/metrics`:
 | `haproxy_spoa_tracked_hosts_total` | Gauge | _(none)_ | Current count of unique virtual hosts actively tracked in memory by the cardinality guard. |
 
 In addition, standard Go runtime and process metrics (`go_*`, `process_*`) are registered and exported.
+
+---
+
+## Prometheus & Grafana Query Cookbook
+
+`haproxy-metrics-spoa` exports Prometheus metrics structured for high-resolution dashboards and alerting. Below is a cookbook of recommended PromQL queries and Grafana panel setups.
+
+### 1. Cumulative Histogram Buckets Explained
+
+Prometheus histograms record duration observations across cumulative buckets identified by the `le` (less-than-or-equal) label:
+- Each bucket `haproxy_host_http_request_duration_seconds_bucket{le="X"}` counts all requests whose response time was less than or equal to `X` seconds (`duration <= X`). For example, `le="0.05"` counts requests completing in 50ms or less.
+- Buckets are cumulative: a request taking 20ms increments `le="0.025"`, `le="0.05"`, `le="0.1"`, and all subsequent buckets up to `le="+Inf"`.
+- The `le="+Inf"` bucket captures all observed requests and equals `haproxy_host_http_request_duration_seconds_count`.
+- `haproxy_host_http_request_duration_seconds_sum` tracks the total elapsed duration of all requests in seconds.
+
+### 2. Request Duration Percentiles (p50, p95, p99)
+
+Use `histogram_quantile()` to calculate latency percentiles per virtual host across a rate window:
+
+```promql
+# 50th percentile (median) request duration per virtual host
+histogram_quantile(0.50, sum by (le, host) (rate(haproxy_host_http_request_duration_seconds_bucket[5m])))
+
+# 95th percentile request duration per virtual host
+histogram_quantile(0.95, sum by (le, host) (rate(haproxy_host_http_request_duration_seconds_bucket[5m])))
+
+# 99th percentile request duration per virtual host
+histogram_quantile(0.99, sum by (le, host) (rate(haproxy_host_http_request_duration_seconds_bucket[5m])))
+```
+
+To aggregate across all virtual hosts globally:
+
+```promql
+# Global 95th percentile request duration across all traffic
+histogram_quantile(0.95, sum by (le) (rate(haproxy_host_http_request_duration_seconds_bucket[5m])))
+```
+
+### 3. Average Request Duration
+
+Compute the average duration per request by dividing duration sum rate by request count rate:
+
+```promql
+# Average request duration (seconds) per virtual host
+sum by (host) (rate(haproxy_host_http_request_duration_seconds_sum[5m]))
+/
+sum by (host) (rate(haproxy_host_http_request_duration_seconds_count[5m]))
+```
+
+### 4. HTTP Request Rate & Error Rates
+
+Track throughput and error rates per virtual host:
+
+```promql
+# Total request rate (requests/sec) per virtual host
+sum by (host) (rate(haproxy_host_http_requests_total[5m]))
+
+# Request rate per virtual host and HTTP response code
+sum by (host, code) (rate(haproxy_host_http_requests_total[5m]))
+
+# HTTP 5xx server error rate per virtual host
+sum by (host) (rate(haproxy_host_http_requests_total{code=~"5.."}[5m]))
+
+# HTTP 5xx error percentage (%) per virtual host
+(
+  sum by (host) (rate(haproxy_host_http_requests_total{code=~"5.."}[5m]))
+  /
+  sum by (host) (rate(haproxy_host_http_requests_total[5m]))
+) * 100
+```
+
+### 5. Network Bandwidth Throughput
+
+Monitor inbound and outbound payload throughput per virtual host:
+
+```promql
+# Inbound request payload bandwidth (bytes/sec) per host
+sum by (host) (rate(haproxy_host_http_request_bytes_total[5m]))
+
+# Outbound response payload bandwidth (bytes/sec) per host
+sum by (host) (rate(haproxy_host_http_response_bytes_total[5m]))
+
+# Outbound bandwidth in Megabits per second (Mbps) per host
+(sum by (host) (rate(haproxy_host_http_response_bytes_total[5m])) * 8) / 1000000
+```
+
+### 6. Grafana Latency Heatmap Setup
+
+A Grafana Heatmap panel visualizes the entire latency distribution over time, illuminating multi-modal clusters and latency spikes that single percentile lines hide:
+
+1. **Add Panel**: Create a new panel and choose the **Heatmap** visualization in Grafana.
+2. **PromQL Query**:
+   ```promql
+   sum by (le) (rate(haproxy_host_http_request_duration_seconds_bucket{host=~"$host"}[$__rate_interval]))
+   ```
+   *(Note: Replace `$host` with a specific hostname or your dashboard template variable).*
+3. **Query Options**:
+   - Set **Format** to `Time series`.
+4. **Heatmap Panel Options**:
+   - Under **Heatmap > Data format**, select `Time series buckets`.
+   - Under **Y-axis > Unit**, select `Time > seconds (s)`.
+   - Under **Colors > Scheme**, select `Spectral`, `Oranges`, or `Flame`.
+   - Under **Tooltip**, enable **Show histogram** to inspect bucket counts on hover.
 
 ---
 
@@ -343,6 +505,14 @@ The E2E test suite:
 
 ---
 
+## Contributing
+
+Contributions, bug reports, and suggestions are welcome! Please review [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code style, development workflow, and testing invariants.
+
+## Security
+
+For security vulnerability reporting and disclosure policies, please consult [SECURITY.md](SECURITY.md).
+
 ## License
 
-This project is licensed under the Apache 2.0 License.
+This project is licensed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
