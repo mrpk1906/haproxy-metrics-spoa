@@ -48,6 +48,7 @@ services:
     ports:
       - "18080:8080"
       - "18081:8081"
+      - "18082:8082"
     networks:
       - e2e_net
     depends_on:
