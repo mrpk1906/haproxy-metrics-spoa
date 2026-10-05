@@ -20,7 +20,12 @@ jobs:
           cache: true
       - name: Verify formatting and vet
         run: |
-          test -z "$(go fmt ./...)"
+          FMT_OUT=$(go fmt ./...)
+          if [ -n "$FMT_OUT" ]; then
+            echo "Unformatted files found:"
+            echo "$FMT_OUT"
+            exit 1
+          fi
           go vet ./...
 
   test:

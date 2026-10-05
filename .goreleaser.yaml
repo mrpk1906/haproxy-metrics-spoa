@@ -52,6 +52,7 @@ dockers:
       - "ghcr.io/mrpk1906/haproxy-metrics-spoa:v{{ .Major }}.{{ .Minor }}-amd64"
       - "ghcr.io/mrpk1906/haproxy-metrics-spoa:latest-amd64"
     use: buildx
+    goarch: amd64
     dockerfile: Dockerfile
     build_flag_templates:
       - "--platform=linux/amd64"
