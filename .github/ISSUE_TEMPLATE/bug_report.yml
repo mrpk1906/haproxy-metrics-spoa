@@ -1,0 +1,99 @@
+name: Bug Report
+description: File a bug report to help us improve haproxy-metrics-spoa
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue!
+
+        > [!NOTE]
+        > If you have discovered a potential security vulnerability, please do NOT file a public issue. Follow our [Security Policy](https://github.com/mrpk1906/haproxy-metrics-spoa/security/policy) instead.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: What happened? Describe the unexpected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Start haproxy-metrics-spoa with: ...
+        2. Configure HAProxy with: ...
+        3. Send HTTP traffic: ...
+        4. Observe error or metric output: ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen instead?
+      placeholder: Clear description of expected behavior.
+    validations:
+      required: true
+  - type: input
+    id: haproxy-version
+    attributes:
+      label: HAProxy Version
+      description: What version of HAProxy are you running? (Run `haproxy -v`)
+      placeholder: "e.g. 2.8.3, 2.9.5, 3.0.0"
+    validations:
+      required: true
+  - type: input
+    id: spoa-version
+    attributes:
+      label: haproxy-metrics-spoa Version
+      description: What version or commit of haproxy-metrics-spoa are you running?
+      placeholder: "e.g. v1.0.0, commit abc1234, or Docker image tag"
+    validations:
+      required: true
+  - type: dropdown
+    id: transport-mode
+    attributes:
+      label: SPOE Transport Mode
+      description: Which transport protocol connects HAProxy and haproxy-metrics-spoa?
+      options:
+        - "UNIX domain socket (unix://...)"
+        - "TCP socket (tcp://...)"
+        - "Both / Other"
+    validations:
+      required: true
+  - type: textarea
+    id: configurations
+    attributes:
+      label: HAProxy and SPOA Configurations
+      description: Relevant sections of your `haproxy.cfg`, `spoe-metrics.cfg`, or daemon CLI flags / environment variables.
+      render: haproxy
+      placeholder: |
+        # haproxy.cfg / spoe-metrics.cfg or daemon CLI flags
+    validations:
+      required: false
+  - type: textarea
+    id: logs-and-metrics
+    attributes:
+      label: Log and Metric Output
+      description: Relevant daemon logs, HAProxy error logs, or output from the `/metrics` endpoint.
+      render: shell
+      placeholder: |
+        # Paste relevant logs or Prometheus metrics output here
+    validations:
+      required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please verify the following before submitting this issue.
+      options:
+        - label: I have searched existing issues to confirm this is not a duplicate.
+          required: true
+        - label: This is not a security vulnerability (see [Security Policy](https://github.com/mrpk1906/haproxy-metrics-spoa/security/policy)).
+          required: true
+        - label: I am running a supported version of HAProxy and haproxy-metrics-spoa.
+          required: false

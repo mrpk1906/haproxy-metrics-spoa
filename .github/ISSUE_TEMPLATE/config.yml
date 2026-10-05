@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Discussions & Questions
+    url: https://github.com/mrpk1906/haproxy-metrics-spoa/discussions
+    about: Ask questions, share configuration patterns, or discuss use cases with the community.
+  - name: Security Vulnerability Reporting
+    url: https://github.com/mrpk1906/haproxy-metrics-spoa/security/advisories/new
+    about: Report security vulnerabilities privately following our security policy.

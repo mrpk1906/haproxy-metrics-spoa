@@ -1,0 +1,52 @@
+name: Feature Request
+description: Suggest an idea or feature enhancement for haproxy-metrics-spoa
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature or improvement for haproxy-metrics-spoa!
+        Please fill out the form below to help us understand the use case and desired solution.
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement / Use Case
+      description: Is your feature request related to a problem or a specific architectural use case?
+      placeholder: A clear and concise description of the problem or limitation you are facing.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution or functionality you would like to see implemented.
+      placeholder: A clear and concise description of what you want to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives-considered
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions, workarounds, or features you have considered.
+      placeholder: Any alternative approaches or workarounds you've explored.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, proposed Prometheus metric definitions, HAProxy sample fetches, or references.
+      placeholder: Metric names, label structures, links to HAProxy/Prometheus documentation, etc.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please verify the following before submitting this feature request.
+      options:
+        - label: I have searched existing issues to ensure this feature hasn't been requested before.
+          required: true
+        - label: This proposal aligns with the core goal of haproxy-metrics-spoa (high-performance virtual host metrics via SPOA).
+          required: false
